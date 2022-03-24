@@ -137,8 +137,12 @@ impl<Cfg: Config> s2n_quic_core::endpoint::Endpoint for Endpoint<Cfg> {
         let timestamp = clock.get_time();
 
         self.connections.iterate_transmission_list(|connection| {
-            transmit_result =
-                connection.on_transmit(queue, timestamp, endpoint_context.event_subscriber);
+            transmit_result = connection.on_transmit(
+                queue,
+                timestamp,
+                endpoint_context.event_subscriber,
+                endpoint_context.packet_interceptor,
+            );
             if transmit_result.is_err() {
                 // If one connection fails, return
                 ConnectionContainerIterationResult::BreakAndInsertAtBack
@@ -210,6 +214,7 @@ impl<Cfg: Config> s2n_quic_core::endpoint::Endpoint for Endpoint<Cfg> {
                         close_packet_buffer,
                         timestamp,
                         endpoint_context.event_subscriber,
+                        endpoint_context.packet_interceptor,
                     );
                 }
             });
@@ -557,6 +562,7 @@ impl<Cfg: Config> Endpoint<Cfg> {
                     packet,
                     endpoint_context.random_generator,
                     endpoint_context.event_subscriber,
+                    endpoint_context.packet_interceptor,
                 ) {
                     match err {
                         ProcessingError::DuplicatePacket => {
@@ -587,6 +593,7 @@ impl<Cfg: Config> Endpoint<Cfg> {
                                 close_packet_buffer,
                                 datagram.timestamp,
                                 endpoint_context.event_subscriber,
+                                endpoint_context.packet_interceptor,
                             );
                             return Err(());
                         }
@@ -621,6 +628,7 @@ impl<Cfg: Config> Endpoint<Cfg> {
                     remaining,
                     endpoint_context.random_generator,
                     endpoint_context.event_subscriber,
+                    endpoint_context.packet_interceptor,
                 ) {
                     conn.close(
                         err,
@@ -628,6 +636,7 @@ impl<Cfg: Config> Endpoint<Cfg> {
                         close_packet_buffer,
                         datagram.timestamp,
                         endpoint_context.event_subscriber,
+                        endpoint_context.packet_interceptor,
                     );
                     return Err(());
                 }
@@ -872,6 +881,7 @@ impl<Cfg: Config> Endpoint<Cfg> {
                 close_packet_buffer,
                 timestamp,
                 endpoint_context.event_subscriber,
+                endpoint_context.packet_interceptor,
             );
         });
 
@@ -898,6 +908,7 @@ impl<Cfg: Config> Endpoint<Cfg> {
                         close_packet_buffer,
                         timestamp,
                         endpoint_context.event_subscriber,
+                        endpoint_context.packet_interceptor,
                     );
                 }
             });
@@ -1128,6 +1139,7 @@ pub mod testing {
         type ConnectionCloseFormatter = s2n_quic_core::connection::close::Development;
         type EventSubscriber = Subscriber;
         type PathMigrationValidator = path::migration::default::Validator;
+        type PacketInterceptor = s2n_quic_core::packet::interceptor::Disabled;
 
         fn context(&mut self) -> super::Context<Self> {
             todo!()
@@ -1156,6 +1168,7 @@ pub mod testing {
         type ConnectionCloseFormatter = s2n_quic_core::connection::close::Development;
         type EventSubscriber = Subscriber;
         type PathMigrationValidator = path::migration::default::Validator;
+        type PacketInterceptor = s2n_quic_core::packet::interceptor::Disabled;
 
         fn context(&mut self) -> super::Context<Self> {
             todo!()
